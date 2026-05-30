@@ -49,7 +49,7 @@ python app.py
 Use these variables in Vercel and local development:
 
 - `SECRET_KEY` - random secret for Flask sessions
-- `DATABASE_URL` - Supabase PostgreSQL connection string
+- `DATABASE_URL` - Supabase PostgreSQL connection string using the `postgresql+psycopg://` format
 - `VERCEL` - set to `1` on Vercel
 
 See [.env.exp](.env.exp) for the expected format.
@@ -60,6 +60,7 @@ See [.env.exp](.env.exp) for the expected format.
 2. Open the SQL editor.
 3. Run [supabase_schema.sql](supabase_schema.sql).
 4. Copy your Supabase connection string into `DATABASE_URL`.
+5. If Supabase gives you a `postgres://` or `postgresql://` URL, the app normalizes it automatically.
 
 The demo data uses plain-text passwords by design for this project:
 
