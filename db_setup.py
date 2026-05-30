@@ -4,22 +4,26 @@ from datetime import datetime, timedelta
 from sqlalchemy import create_engine, Column, Integer, String, Float, Boolean, Text, DateTime, ForeignKey
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship, sessionmaker
-from werkzeug.security import generate_password_hash
 
-# Database connection settings
-DB_USER = "postgres"  # Change to your PostgreSQL username
-DB_PASSWORD = "Admin"  # Change to your PostgreSQL password
-DB_HOST = "localhost"
-DB_PORT = "5432"
-DB_NAME = "rental_db"
+def get_database_url():
+    database_url = os.getenv("DATABASE_URL")
+    if database_url:
+        return database_url.replace("postgres://", "postgresql://", 1)
 
-# Create the connection string
-DATABASE_URL = f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+    db_user = os.getenv("DB_USER", "postgres")
+    db_password = os.getenv("DB_PASSWORD", "Admin")
+    db_host = os.getenv("DB_HOST", "localhost")
+    db_port = os.getenv("DB_PORT", "5432")
+    db_name = os.getenv("DB_NAME", "rental_db")
+    return f"postgresql://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}"
+
+
+DATABASE_URL = get_database_url()
 
 # Create the SQLAlchemy engine
 try:
-    engine = create_engine(DATABASE_URL)
-    print(f"Successfully connected to PostgreSQL database: {DB_NAME}")
+    engine = create_engine(DATABASE_URL, pool_pre_ping=True)
+    print("Successfully connected to the configured PostgreSQL database")
 except Exception as e:
     print(f"Error connecting to PostgreSQL database: {e}")
     sys.exit(1)
@@ -80,18 +84,22 @@ def insert_sample_data():
     session = Session()
     
     try:
+        if session.query(User).count() > 0 or session.query(Vehicle).count() > 0:
+            print("Database already has data; skipping sample inserts.")
+            return True
+
         # Add sample users
         admin_user = User(
             name="Admin User",
             email="admin@example.com",
-            password=generate_password_hash("admin123"),
+            password="admin123",
             is_admin=True
         )
         
         regular_user = User(
             name="John Doe",
             email="john@example.com",
-            password=generate_password_hash("password123"),
+            password="password123",
             is_admin=False
         )
         

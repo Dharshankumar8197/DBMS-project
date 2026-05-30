@@ -1,25 +1,37 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify
 from flask_sqlalchemy import SQLAlchemy
-from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
 import os
 import sys
 
 # Create Flask app
 app = Flask(__name__)
-app.config['SECRET_KEY'] = os.urandom(24)
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'dev-secret-key-change-me')
 
-# PostgreSQL Connection Settings
-DB_USER = "postgres"  # Default PostgreSQL username
-DB_PASSWORD = "Admin"  # Replace with your actual PostgreSQL password
-DB_HOST = "localhost"
-DB_PORT = "5432"
-DB_NAME = "rental_db"
 
-# Create the connection string
-DATABASE_URL = f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
-app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL
+def get_database_url():
+    """Return the database URL from the environment, with a local fallback."""
+    database_url = os.getenv('DATABASE_URL')
+    if database_url:
+        return database_url.replace('postgres://', 'postgresql://', 1)
+
+    db_user = os.getenv('DB_USER', 'postgres')
+    db_password = os.getenv('DB_PASSWORD', 'Admin')
+    db_host = os.getenv('DB_HOST', 'localhost')
+    db_port = os.getenv('DB_PORT', '5432')
+    db_name = os.getenv('DB_NAME', 'rental_db')
+    return f'postgresql://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}'
+
+
+app.config['SQLALCHEMY_DATABASE_URI'] = get_database_url()
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+    'pool_pre_ping': True,
+    'pool_recycle': 300,
+}
+app.config['SESSION_COOKIE_HTTPONLY'] = True
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+app.config['SESSION_COOKIE_SECURE'] = os.getenv('VERCEL') == '1'
 
 # Initialize SQLAlchemy
 db = SQLAlchemy(app)
@@ -87,8 +99,7 @@ def register():
             flash('Email already exists')
             return redirect(url_for('register'))
         
-        hashed_password = generate_password_hash(password)
-        new_user = User(name=name, email=email, password=hashed_password)
+        new_user = User(name=name, email=email, password=password)
         
         try:
             db.session.add(new_user)
@@ -110,7 +121,7 @@ def login():
         
         user = User.query.filter_by(email=email).first()
         
-        if user and check_password_hash(user.password, password):
+        if user and user.password == password:
             session['user_id'] = user.id
             session['is_admin'] = user.is_admin
             flash('Login successful!')
@@ -460,7 +471,7 @@ def change_password():
         confirm_password = request.form['confirm_password']
         
         # Verify current password
-        if not check_password_hash(user.password, current_password):
+        if user.password != current_password:
             flash('Current password is incorrect')
             return redirect(url_for('change_password'))
         
@@ -470,7 +481,7 @@ def change_password():
             return redirect(url_for('change_password'))
         
         # Update password
-        user.password = generate_password_hash(new_password)
+        user.password = new_password
         
         try:
             db.session.commit()
@@ -495,7 +506,7 @@ def admin_reset_password(user_id):
         new_password = request.form['new_password']
         
         # Update password
-        user.password = generate_password_hash(new_password)
+        user.password = new_password
         
         try:
             db.session.commit()
@@ -557,15 +568,15 @@ def toggle_admin(user_id):
 
 # Function to create sample data
 def create_sample_data():
-    # Check if there are already users in the database
-    if User.query.count() > 0:
+    # Only seed a truly empty database.
+    if User.query.count() > 0 or Vehicle.query.count() > 0:
         return
     
     # Create admin user
     admin = User(
         name="Admin User",
         email="admin@example.com",
-        password=generate_password_hash("admin123"),
+        password="admin123",
         is_admin=True
     )
     
@@ -573,7 +584,7 @@ def create_sample_data():
     user = User(
         name="John Doe",
         email="user@example.com",
-        password=generate_password_hash("user123"),
+        password="user123",
         is_admin=False
     )
     
