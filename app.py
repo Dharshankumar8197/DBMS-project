@@ -89,10 +89,15 @@ _schema_bootstrapped = False
 @app.errorhandler(SQLAlchemyError)
 def handle_database_error(error):
     app.logger.exception('Database error: %s', error)
+    error_message = str(error)
     return render_template(
         'error.html',
         title='Database Unavailable',
-        message='The application could not reach the database. Please check the Supabase DATABASE_URL environment variable and redeploy.'
+        message=(
+            'The application could not reach the database. '
+            'Supabase rejected the connection or the URL is wrong. '
+            f'Details: {error_message}'
+        )
     ), 503
 
 
