@@ -35,7 +35,7 @@ app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
 }
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
-app.config['SESSION_COOKIE_SECURE'] = os.getenv('SESSION_COOKIE_SECURE', '0') == '1'
+app.config['SESSION_COOKIE_SECURE'] = os.getenv('SESSION_COOKIE_SECURE', '1' if os.getenv('VERCEL') == '1' else '0') == '1'
 
 # Initialize SQLAlchemy
 db = SQLAlchemy(app)
