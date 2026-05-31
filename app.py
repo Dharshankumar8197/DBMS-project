@@ -35,7 +35,7 @@ app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
 }
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
-app.config['SESSION_COOKIE_SECURE'] = os.getenv('VERCEL') == '1'
+app.config['SESSION_COOKIE_SECURE'] = os.getenv('SESSION_COOKIE_SECURE', '0') == '1'
 
 # Initialize SQLAlchemy
 db = SQLAlchemy(app)
@@ -702,7 +702,11 @@ if __name__ == '__main__':
                 print("Admin: admin@example.com / admin123")
                 print("User: user@example.com / user123")
                 
-                app.run(debug=True)
+                app.run(
+                    host=os.getenv('HOST', '0.0.0.0'),
+                    port=int(os.getenv('PORT', '5000')),
+                    debug=os.getenv('FLASK_DEBUG', '0') == '1'
+                )
             except Exception as e:
                 print(f"❌ Error setting up application: {str(e)}")
     else:

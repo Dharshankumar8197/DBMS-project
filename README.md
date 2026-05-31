@@ -1,6 +1,6 @@
 # DBMS Project
 
-A Flask-based car and bike rental web application with Supabase PostgreSQL for data storage and Vercel deployment support.
+A Flask-based car and bike rental web application with Supabase PostgreSQL for data storage and a standard hosted Flask deployment.
 
 ## Features
 
@@ -9,7 +9,7 @@ A Flask-based car and bike rental web application with Supabase PostgreSQL for d
 - Booking flow with booking management
 - Admin dashboard for users, vehicles, and bookings
 - Supabase-ready PostgreSQL schema and seed data
-- Vercel-friendly Flask deployment setup
+- Production WSGI deployment setup
 
 ## Tech Stack
 
@@ -17,15 +17,14 @@ A Flask-based car and bike rental web application with Supabase PostgreSQL for d
 - Flask
 - Flask-SQLAlchemy
 - PostgreSQL on Supabase
-- Vercel for hosting
+- Gunicorn for hosting
 
 ## Project Files
 
 - [app.py](app.py) - main Flask application
 - [db_setup.py](db_setup.py) - database setup script for local use
 - [supabase_schema.sql](supabase_schema.sql) - SQL file for Supabase tables and demo data
-- [vercel.json](vercel.json) - Vercel routing configuration
-- [api/index.py](api/index.py) - Vercel Python entrypoint
+- [Procfile](Procfile) - hosted deployment command
 - [.env.exp](.env.exp) - example environment variables
 
 ## Local Setup
@@ -46,11 +45,12 @@ python app.py
 
 ## Environment Variables
 
-Use these variables in Vercel and local development:
+Use these variables in local development and hosted deployment:
 
 - `SECRET_KEY` - random secret for Flask sessions
 - `DATABASE_URL` - Supabase PostgreSQL connection string using the `postgresql+psycopg://` format
-- `VERCEL` - set to `1` on Vercel
+- `SESSION_COOKIE_SECURE` - set to `1` on HTTPS-hosted environments
+- `FLASK_DEBUG` - set to `1` only for local debugging
 
 See [.env.exp](.env.exp) for the expected format.
 
@@ -67,14 +67,14 @@ The demo data uses plain-text passwords by design for this project:
 - `admin@example.com` / `admin123`
 - `user@example.com` / `user123`
 
-## Deploying to Vercel
+## Deploying Online
 
 1. Push this repository to GitHub.
-2. Import the repository into Vercel.
+2. Create a hosted Python app on a platform that supports Gunicorn, such as Render or Railway.
 3. Set the environment variables listed above.
-4. Deploy the project.
+4. Use the `Procfile` command to start the web service.
 
-Vercel uses [api/index.py](api/index.py) as the Python entrypoint and [vercel.json](vercel.json) for routing.
+The app is served as a normal Flask web process, not a serverless function.
 
 ## Notes
 
