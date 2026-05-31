@@ -55,7 +55,7 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
     'pool_pre_ping': True,
     'pool_recycle': 300,
-    'connect_args': {'ssl_context': ssl.create_default_context()},
+    'connect_args': {'sslmode': 'require'},
     **({'poolclass': NullPool} if os.getenv('VERCEL') == '1' else {}),
 }
 app.config['SESSION_COOKIE_HTTPONLY'] = True
@@ -78,7 +78,7 @@ def init_extensions(application):
         application.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
             'pool_pre_ping': True,
             'pool_recycle': 300,
-            'connect_args': {'ssl_context': ssl.create_default_context()},
+            'connect_args': {'sslmode': 'require'},
             **({'poolclass': NullPool} if os.getenv('VERCEL') == '1' else {}),
         }
 
