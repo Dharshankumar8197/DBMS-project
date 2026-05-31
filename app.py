@@ -82,7 +82,13 @@ def handle_unexpected_error(error):
 def ensure_schema_exists():
     global _schema_bootstrapped
 
-    if _schema_bootstrapped or os.getenv('FLASK_AUTO_CREATE_SCHEMA', '1') != '1':
+    if _schema_bootstrapped:
+        return None
+
+    if os.getenv('VERCEL') == '1':
+        return None
+
+    if os.getenv('FLASK_AUTO_CREATE_SCHEMA', '0') != '1':
         return None
 
     with app.app_context():
