@@ -1,0 +1,26 @@
+{% extends 'layout.html' %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<section class="page-header">
+    <div class="container">
+        <h1>{{ title }}</h1>
+        <p>{{ message }}</p>
+    </div>
+</section>
+
+<section class="form-section">
+    <div class="container">
+        <div class="delete-confirmation">
+            <div class="warning-message">
+                <i class="fas fa-exclamation-triangle"></i>
+                <p>{{ message }}</p>
+            </div>
+            <div class="form-actions">
+                <a href="{{ url_for('home') }}" class="btn btn-primary">Go Home</a>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

@@ -3,6 +3,8 @@ from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 import os
 import sys
+from sqlalchemy.exc import SQLAlchemyError
+from werkzeug.exceptions import HTTPException
 
 # Create Flask app
 app = Flask(__name__)
@@ -11,13 +13,20 @@ app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'dev-secret-key-change-me')
 
 def get_database_url():
     """Return the database URL from the environment, with a local fallback."""
-    database_url = os.getenv('DATABASE_URL')
-    if database_url:
-        if database_url.startswith('postgres://'):
-            return 'postgresql+psycopg://' + database_url[len('postgres://'):]
-        if database_url.startswith('postgresql://'):
-            return 'postgresql+psycopg://' + database_url[len('postgresql://'):]
-        return database_url
+    for env_name in (
+        'DATABASE_URL',
+        'SUPABASE_DATABASE_URL',
+        'SUPABASE_DB_URL',
+        'POSTGRES_URL',
+        'POSTGRES_PRISMA_URL',
+    ):
+        database_url = os.getenv(env_name)
+        if database_url:
+            if database_url.startswith('postgres://'):
+                return 'postgresql+psycopg://' + database_url[len('postgres://'):]
+            if database_url.startswith('postgresql://'):
+                return 'postgresql+psycopg://' + database_url[len('postgresql://'):]
+            return database_url
 
     db_user = os.getenv('DB_USER', 'postgres')
     db_password = os.getenv('DB_PASSWORD', 'Admin')
@@ -39,6 +48,29 @@ app.config['SESSION_COOKIE_SECURE'] = os.getenv('SESSION_COOKIE_SECURE', '1' if 
 
 # Initialize SQLAlchemy
 db = SQLAlchemy(app)
+
+
+@app.errorhandler(SQLAlchemyError)
+def handle_database_error(error):
+    app.logger.exception('Database error: %s', error)
+    return render_template(
+        'error.html',
+        title='Database Unavailable',
+        message='The application could not reach the database. Please check the Supabase DATABASE_URL environment variable and redeploy.'
+    ), 503
+
+
+@app.errorhandler(Exception)
+def handle_unexpected_error(error):
+    if isinstance(error, HTTPException):
+        return error
+
+    app.logger.exception('Unexpected error: %s', error)
+    return render_template(
+        'error.html',
+        title='Application Error',
+        message='The application hit an unexpected error. Check the deployment logs and database configuration.'
+    ), 500
 
 # Models
 class User(db.Model):
