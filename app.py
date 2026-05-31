@@ -3,6 +3,9 @@ from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 import os
 import sys
+import re
+from urllib.parse import parse_qsl, unquote, urlsplit
+from sqlalchemy.engine import URL
 from sqlalchemy.pool import NullPool
 from sqlalchemy.exc import SQLAlchemyError
 from werkzeug.exceptions import HTTPException
@@ -14,6 +17,8 @@ app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'dev-secret-key-change-me')
 
 def get_database_url():
     """Return the database URL from the environment, with a local fallback."""
+    postgres_url_pattern = re.compile(r'(postgres(?:ql)?(?:\+psycopg(?:2)?)?://[^\s\"\'<>\]]+)')
+
     for env_name in (
         'DATABASE_URL',
         'SUPABASE_DATABASE_URL',
@@ -23,20 +28,37 @@ def get_database_url():
     ):
         database_url = os.getenv(env_name)
         if database_url:
-            if database_url.startswith('postgres://'):
-                return 'postgresql+psycopg2://' + database_url[len('postgres://'):]
-            if database_url.startswith('postgresql://'):
-                return 'postgresql+psycopg2://' + database_url[len('postgresql://'):]
-            if database_url.startswith('postgresql+psycopg://'):
-                return 'postgresql+psycopg2://' + database_url[len('postgresql+psycopg://'):]
-            return database_url
+            cleaned_url = database_url.strip()
+            match = postgres_url_pattern.search(cleaned_url)
+            if match:
+                cleaned_url = match.group(1)
+            cleaned_url = re.sub(r'\]\(mailto:[^)]+\)', '', cleaned_url)
+            cleaned_url = cleaned_url.replace('mailto:', '').replace('[', '').replace(']', '')
+
+            if cleaned_url.startswith('postgresql+psycopg://'):
+                return cleaned_url
+
+            parsed = urlsplit(cleaned_url)
+            if parsed.scheme in {'postgres', 'postgresql', 'postgresql+psycopg'}:
+                query = dict(parse_qsl(parsed.query, keep_blank_values=True))
+                return str(URL.create(
+                    'postgresql+psycopg',
+                    username=unquote(parsed.username) if parsed.username else None,
+                    password=unquote(parsed.password) if parsed.password else None,
+                    host=parsed.hostname,
+                    port=parsed.port,
+                    database=parsed.path.lstrip('/'),
+                    query=query,
+                ))
+
+            return cleaned_url
 
     db_user = os.getenv('DB_USER', 'postgres')
     db_password = os.getenv('DB_PASSWORD', 'Admin')
     db_host = os.getenv('DB_HOST', 'localhost')
     db_port = os.getenv('DB_PORT', '5432')
     db_name = os.getenv('DB_NAME', 'rental_db')
-    return f'postgresql+psycopg2://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}'
+    return f'postgresql+psycopg://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}'
 
 
 app.config['SQLALCHEMY_DATABASE_URI'] = get_database_url()
@@ -50,8 +72,21 @@ app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 app.config['SESSION_COOKIE_SECURE'] = os.getenv('SESSION_COOKIE_SECURE', '1' if os.getenv('VERCEL') == '1' else '0') == '1'
 
-# Initialize SQLAlchemy
-db = SQLAlchemy(app)
+# Initialize SQLAlchemy (deferred init)
+db = SQLAlchemy()
+
+
+def init_extensions(application):
+    """Initialize extensions that require the app. Call once at server start."""
+    # refresh DB URI in case env changed between import and runtime
+    application.config['SQLALCHEMY_DATABASE_URI'] = get_database_url()
+    application.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+        'pool_pre_ping': True,
+        'pool_recycle': 300,
+        **({'poolclass': NullPool} if os.getenv('VERCEL') == '1' else {}),
+    }
+    db.init_app(application)
+
 _schema_bootstrapped = False
 
 
