@@ -50,6 +50,8 @@ Use these variables in Vercel and local development:
 
 - `SECRET_KEY` - random secret for Flask sessions
 - `DATABASE_URL` - Supabase PostgreSQL connection string in the exact Supabase format, for example `postgresql://postgres:[YOUR-PASSWORD]@db.ffnjxdcmoqqhmuwifxyj.supabase.co:5432/postgres`
+- `NEXT_PUBLIC_SUPABASE_URL` - optional public Supabase project URL for browser-side clients
+- `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` - optional public Supabase publishable key for browser-side clients
 - `VERCEL` - set to `1` on Vercel
 - `SESSION_COOKIE_SECURE` - set to `1` on HTTPS-hosted environments
 - `FLASK_DEBUG` - set to `1` only for local debugging
