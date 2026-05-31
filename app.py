@@ -4,6 +4,7 @@ from datetime import datetime
 import os
 import sys
 import re
+import ssl
 from urllib.parse import parse_qsl, unquote, urlsplit
 from sqlalchemy.engine import URL
 from sqlalchemy.pool import NullPool
@@ -16,49 +17,36 @@ app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'dev-secret-key-change-me')
 
 
 def get_database_url():
-    """Return the database URL from the environment, with a local fallback."""
-    postgres_url_pattern = re.compile(r'(postgres(?:ql)?(?:\+psycopg(?:2)?)?://[^\s\"\'<>\]]+)')
+    """Return the database URL from DATABASE_URL, normalized for SQLAlchemy."""
+    database_url = os.getenv('DATABASE_URL')
+    if not database_url:
+        raise RuntimeError('DATABASE_URL is required')
 
-    for env_name in (
-        'DATABASE_URL',
-        'SUPABASE_DATABASE_URL',
-        'SUPABASE_DB_URL',
-        'POSTGRES_URL',
-        'POSTGRES_PRISMA_URL',
-    ):
-        database_url = os.getenv(env_name)
-        if database_url:
-            cleaned_url = database_url.strip()
-            match = postgres_url_pattern.search(cleaned_url)
-            if match:
-                cleaned_url = match.group(1)
-            cleaned_url = re.sub(r'\]\(mailto:[^)]+\)', '', cleaned_url)
-            cleaned_url = cleaned_url.replace('mailto:', '').replace('[', '').replace(']', '')
+    cleaned_url = database_url.strip()
+    cleaned_url = re.sub(r'\]\(mailto:[^)]+\)', '', cleaned_url)
+    cleaned_url = cleaned_url.replace('mailto:', '').replace('[', '').replace(']', '')
 
-            if cleaned_url.startswith('postgresql+psycopg://'):
-                return cleaned_url
+    if cleaned_url.startswith('postgresql+pg8000://'):
+        return cleaned_url
 
-            parsed = urlsplit(cleaned_url)
-            if parsed.scheme in {'postgres', 'postgresql', 'postgresql+psycopg'}:
-                query = dict(parse_qsl(parsed.query, keep_blank_values=True))
-                return str(URL.create(
-                    'postgresql+psycopg',
-                    username=unquote(parsed.username) if parsed.username else None,
-                    password=unquote(parsed.password) if parsed.password else None,
-                    host=parsed.hostname,
-                    port=parsed.port,
-                    database=parsed.path.lstrip('/'),
-                    query=query,
-                ))
+    parsed = urlsplit(cleaned_url)
+    if parsed.scheme in {'postgres', 'postgresql', 'postgresql+psycopg'}:
+        query = {
+            key: value
+            for key, value in parse_qsl(parsed.query, keep_blank_values=True)
+            if key.lower() not in {'sslmode', 'ssl'}
+        }
+        return str(URL.create(
+            'postgresql+pg8000',
+            username=unquote(parsed.username) if parsed.username else None,
+            password=unquote(parsed.password) if parsed.password else None,
+            host=parsed.hostname,
+            port=parsed.port,
+            database=parsed.path.lstrip('/'),
+            query=query,
+        ))
 
-            return cleaned_url
-
-    db_user = os.getenv('DB_USER', 'postgres')
-    db_password = os.getenv('DB_PASSWORD', 'Admin')
-    db_host = os.getenv('DB_HOST', 'localhost')
-    db_port = os.getenv('DB_PORT', '5432')
-    db_name = os.getenv('DB_NAME', 'rental_db')
-    return f'postgresql+psycopg://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}'
+    return cleaned_url
 
 
 app.config['SQLALCHEMY_DATABASE_URI'] = get_database_url()
@@ -66,6 +54,7 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
     'pool_pre_ping': True,
     'pool_recycle': 300,
+    'connect_args': {'ssl_context': ssl.create_default_context()},
     **({'poolclass': NullPool} if os.getenv('VERCEL') == '1' else {}),
 }
 app.config['SESSION_COOKIE_HTTPONLY'] = True
@@ -88,6 +77,7 @@ def init_extensions(application):
         application.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
             'pool_pre_ping': True,
             'pool_recycle': 300,
+            'connect_args': {'ssl_context': ssl.create_default_context()},
             **({'poolclass': NullPool} if os.getenv('VERCEL') == '1' else {}),
         }
 
