@@ -18,9 +18,9 @@ app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'dev-secret-key-change-me')
 
 def get_database_url():
     """Return the database URL from DATABASE_URL, normalized for SQLAlchemy."""
-    database_url = os.getenv('DATABASE_URL')
+    database_url = os.getenv('MY_CUSTOM_DB_URL') or os.getenv('DATABASE_URL')
     if not database_url:
-        raise RuntimeError('DATABASE_URL is required')
+        raise RuntimeError('MY_CUSTOM_DB_URL or DATABASE_URL is required')
 
     cleaned_url = database_url.strip()
     cleaned_url = re.sub(r'\]\(mailto:[^)]+\)', '', cleaned_url)
