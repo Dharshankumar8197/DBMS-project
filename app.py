@@ -52,6 +52,7 @@ app.config['SESSION_COOKIE_SECURE'] = os.getenv('SESSION_COOKIE_SECURE', '1' if 
 
 # Initialize SQLAlchemy
 db = SQLAlchemy(app)
+_schema_bootstrapped = False
 
 
 @app.errorhandler(SQLAlchemyError)
@@ -75,6 +76,21 @@ def handle_unexpected_error(error):
         title='Application Error',
         message='The application hit an unexpected error. Check the deployment logs and database configuration.'
     ), 500
+
+
+@app.before_request
+def ensure_schema_exists():
+    global _schema_bootstrapped
+
+    if _schema_bootstrapped or os.getenv('FLASK_AUTO_CREATE_SCHEMA', '1') != '1':
+        return None
+
+    with app.app_context():
+        db.create_all()
+        db.session.remove()
+
+    _schema_bootstrapped = True
+    return None
 
 # Models
 class User(db.Model):
