@@ -52,7 +52,6 @@ app.config['SESSION_COOKIE_SECURE'] = os.getenv('SESSION_COOKIE_SECURE', '1' if 
 
 # Initialize SQLAlchemy
 db = SQLAlchemy(app)
-_database_bootstrapped = False
 
 
 @app.errorhandler(SQLAlchemyError)
@@ -76,29 +75,6 @@ def handle_unexpected_error(error):
         title='Application Error',
         message='The application hit an unexpected error. Check the deployment logs and database configuration.'
     ), 500
-
-
-@app.before_request
-def bootstrap_database():
-    global _database_bootstrapped
-
-    if _database_bootstrapped or os.getenv('FLASK_AUTO_INIT_DB', '1') != '1':
-        return None
-
-    try:
-        with app.app_context():
-            db.create_all()
-            create_sample_data()
-        _database_bootstrapped = True
-    except SQLAlchemyError as error:
-        app.logger.exception('Database bootstrap failed: %s', error)
-        return render_template(
-            'error.html',
-            title='Database Setup Failed',
-            message='The app could not create or read the Supabase tables. Check the DATABASE_URL value and make sure the Supabase schema has been applied.'
-        ), 503
-
-    return None
 
 # Models
 class User(db.Model):
