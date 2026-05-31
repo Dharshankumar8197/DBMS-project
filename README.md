@@ -49,7 +49,7 @@ python app.py
 Use these variables in Vercel and local development:
 
 - `SECRET_KEY` - random secret for Flask sessions
-- `DATABASE_URL` - Supabase PostgreSQL connection string using the `postgresql+psycopg://` format
+- `DATABASE_URL` - Supabase PostgreSQL connection string using the `postgresql+psycopg2://` format
 - `VERCEL` - set to `1` on Vercel
 - `SESSION_COOKIE_SECURE` - set to `1` on HTTPS-hosted environments
 - `FLASK_DEBUG` - set to `1` only for local debugging

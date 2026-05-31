@@ -3,6 +3,7 @@ from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 import os
 import sys
+from sqlalchemy.pool import NullPool
 from sqlalchemy.exc import SQLAlchemyError
 from werkzeug.exceptions import HTTPException
 
@@ -23,9 +24,11 @@ def get_database_url():
         database_url = os.getenv(env_name)
         if database_url:
             if database_url.startswith('postgres://'):
-                return 'postgresql+psycopg://' + database_url[len('postgres://'):]
+                return 'postgresql+psycopg2://' + database_url[len('postgres://'):]
             if database_url.startswith('postgresql://'):
-                return 'postgresql+psycopg://' + database_url[len('postgresql://'):]
+                return 'postgresql+psycopg2://' + database_url[len('postgresql://'):]
+            if database_url.startswith('postgresql+psycopg://'):
+                return 'postgresql+psycopg2://' + database_url[len('postgresql+psycopg://'):]
             return database_url
 
     db_user = os.getenv('DB_USER', 'postgres')
@@ -33,7 +36,7 @@ def get_database_url():
     db_host = os.getenv('DB_HOST', 'localhost')
     db_port = os.getenv('DB_PORT', '5432')
     db_name = os.getenv('DB_NAME', 'rental_db')
-    return f'postgresql+psycopg://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}'
+    return f'postgresql+psycopg2://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}'
 
 
 app.config['SQLALCHEMY_DATABASE_URI'] = get_database_url()
@@ -41,6 +44,7 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
     'pool_pre_ping': True,
     'pool_recycle': 300,
+    **({'poolclass': NullPool} if os.getenv('VERCEL') == '1' else {}),
 }
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
