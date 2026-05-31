@@ -16,6 +16,12 @@ from werkzeug.exceptions import HTTPException
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'dev-secret-key-change-me')
 
+def get_ssl_context():
+    import ssl
+    ctx = ssl.create_default_context()
+    ctx.check_hostname = False
+    ctx.verify_mode = ssl.CERT_NONE
+    return ctx
 
 def get_database_url():
     """Return the database URL from DATABASE_URL, normalized for SQLAlchemy."""
@@ -62,7 +68,7 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
     'pool_pre_ping': True,
     'pool_recycle': 300,
-    'connect_args': {'ssl_context': __import__('ssl').create_default_context()},
+    'connect_args': {'ssl_context': get_ssl_context()},
     **({'poolclass': NullPool} if os.getenv('VERCEL') == '1' else {}),
 }
 app.config['SESSION_COOKIE_HTTPONLY'] = True
@@ -85,7 +91,7 @@ def init_extensions(application):
         application.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
             'pool_pre_ping': True,
             'pool_recycle': 300,
-            'connect_args': {'ssl_context': __import__('ssl').create_default_context()},
+            'connect_args': {'ssl_context': get_ssl_context()},
             **({'poolclass': NullPool} if os.getenv('VERCEL') == '1' else {}),
         }
 
