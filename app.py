@@ -31,11 +31,9 @@ def get_database_url():
 
     parsed = urlsplit(cleaned_url)
     if parsed.scheme in {'postgres', 'postgresql', 'postgresql+psycopg'}:
-        query = {
-            key: value
-            for key, value in parse_qsl(parsed.query, keep_blank_values=True)
-            if key.lower() not in {'sslmode', 'ssl'}
-        }
+        # pg8000 does not accept most query parameters (like pgbouncer, connection_limit)
+        # and ssl is already handled via connect_args in SQLAlchemy config.
+        query = {}
         return str(URL.create(
             'postgresql+pg8000',
             username=unquote(parsed.username) if parsed.username else None,
