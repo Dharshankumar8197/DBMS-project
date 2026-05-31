@@ -53,6 +53,7 @@ Use these variables in Vercel and local development:
 - `VERCEL` - set to `1` on Vercel
 - `SESSION_COOKIE_SECURE` - set to `1` on HTTPS-hosted environments
 - `FLASK_DEBUG` - set to `1` only for local debugging
+ - `FLASK_SKIP_DB_TEST` - set to `1` to skip DB connectivity checks when running locally (Windows/dev)
 
 See [.env.exp](.env.exp) for the expected format.
 

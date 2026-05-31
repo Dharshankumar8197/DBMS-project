@@ -777,31 +777,32 @@ def test_db_connection():
         return False
 
 if __name__ == '__main__':
-    # Test database connection before creating tables
-    print("\n=== Testing PostgreSQL Connection ===")
-    if test_db_connection():
-        with app.app_context():
-            try:
-                print("\n=== Creating Database Tables ===")
-                db.create_all()
-                print("✅ Tables created successfully!")
-                
-                print("\n=== Creating Sample Data ===")
-                create_sample_data()
-                
-                print("\n=== Starting Flask Application ===")
-                print("Access the application at http://localhost:5000")
-                print("\nLogin credentials:")
-                print("Admin: admin@example.com / admin123")
-                print("User: user@example.com / user123")
-                
-                app.run(
-                    host=os.getenv('HOST', '0.0.0.0'),
-                    port=int(os.getenv('PORT', '5000')),
-                    debug=os.getenv('FLASK_DEBUG', '0') == '1'
-                )
-            except Exception as e:
-                print(f"❌ Error setting up application: {str(e)}")
+    # Optionally skip DB tests for local development (useful on Windows without libpq)
+    skip_db = os.getenv('FLASK_SKIP_DB_TEST', '0') == '1'
+
+    print("\n=== Starting Flask Application ===")
+    if not skip_db:
+        print("\n=== Testing PostgreSQL Connection ===")
+        if test_db_connection():
+            with app.app_context():
+                try:
+                    print("\n=== Creating Database Tables ===")
+                    db.create_all()
+                    print("✅ Tables created successfully!")
+
+                    print("\n=== Creating Sample Data ===")
+                    create_sample_data()
+                except Exception as e:
+                    print(f"❌ Error setting up application: {str(e)}")
+        else:
+            print("\n❌ Cannot start application due to database connection issues.")
+            sys.exit(1)
     else:
-        print("\n❌ Cannot start application due to database connection issues.")
-        sys.exit(1)
+        print("⚠️ FLASK_SKIP_DB_TEST=1 set — skipping DB connectivity checks and table creation.")
+
+    print("Access the application at http://localhost:5000")
+    app.run(
+        host=os.getenv('HOST', '0.0.0.0'),
+        port=int(os.getenv('PORT', '5000')),
+        debug=os.getenv('FLASK_DEBUG', '0') == '1'
+    )
