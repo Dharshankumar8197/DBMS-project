@@ -78,13 +78,19 @@ db = SQLAlchemy()
 
 def init_extensions(application):
     """Initialize extensions that require the app. Call once at server start."""
-    # refresh DB URI in case env changed between import and runtime
-    application.config['SQLALCHEMY_DATABASE_URI'] = get_database_url()
-    application.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
-        'pool_pre_ping': True,
-        'pool_recycle': 300,
-        **({'poolclass': NullPool} if os.getenv('VERCEL') == '1' else {}),
-    }
+    # If developer set FLASK_SKIP_DB_TEST, use an in-memory SQLite DB so app routes work
+    if os.getenv('FLASK_SKIP_DB_TEST', '0') == '1':
+        application.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('SQLALCHEMY_SQLITE_URI', 'sqlite:///:memory:')
+        application.config['SQLALCHEMY_ENGINE_OPTIONS'] = {}
+    else:
+        # refresh DB URI in case env changed between import and runtime
+        application.config['SQLALCHEMY_DATABASE_URI'] = get_database_url()
+        application.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+            'pool_pre_ping': True,
+            'pool_recycle': 300,
+            **({'poolclass': NullPool} if os.getenv('VERCEL') == '1' else {}),
+        }
+
     db.init_app(application)
 
 _schema_bootstrapped = False
@@ -781,6 +787,9 @@ if __name__ == '__main__':
     skip_db = os.getenv('FLASK_SKIP_DB_TEST', '0') == '1'
 
     print("\n=== Starting Flask Application ===")
+    # Initialize extensions now that runtime env is ready
+    init_extensions(app)
+
     if not skip_db:
         print("\n=== Testing PostgreSQL Connection ===")
         if test_db_connection():
