@@ -30,15 +30,15 @@ def get_database_url():
         return cleaned_url
 
     parsed = urlsplit(cleaned_url)
-    if parsed.scheme in {'postgres', 'postgresql', 'postgresql+psycopg', 'postgresql+pg8000'}:
-        # psycopg3 ignores unknown query parameters like pgbouncer
+    if parsed.scheme in {'postgres', 'postgresql', 'postgresql+psycopg', 'postgresql+psycopg2', 'postgresql+pg8000'}:
+        # psycopg2 ignores unknown query parameters like pgbouncer
         query = {
             key: value
             for key, value in parse_qsl(parsed.query, keep_blank_values=True)
             if key.lower() not in {'sslmode', 'ssl'}
         }
         return str(URL.create(
-            'postgresql+psycopg',
+            'postgresql+psycopg2',
             username=unquote(parsed.username) if parsed.username else None,
             password=unquote(parsed.password) if parsed.password else None,
             host=parsed.hostname,
