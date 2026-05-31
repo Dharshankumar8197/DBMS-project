@@ -24,6 +24,10 @@ def get_database_url():
         import base64
         b64_url = "cG9zdGdyZXNxbDovL3Bvc3RncmVzLm52eWhsaHVsanhodGdma2VxaGZmOmRIYVIyZEhhUmlqYUBhd3MtMS1hcC1ub3J0aGVhc3QtMS5wb29sZXIuc3VwYWJhc2UuY29tOjY1NDMvcG9zdGdyZXM="
         database_url = base64.b64decode(b64_url).decode('utf-8')
+    
+    # Force pg8000 for Vercel
+    database_url = database_url.replace('postgresql://', 'postgresql+pg8000://', 1)
+    database_url = database_url.replace('postgresql+psycopg2://', 'postgresql+pg8000://', 1)
 
     cleaned_url = database_url.strip()
     cleaned_url = re.sub(r'\]\(mailto:[^)]+\)', '', cleaned_url)
@@ -58,7 +62,7 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
     'pool_pre_ping': True,
     'pool_recycle': 300,
-    'connect_args': {'sslmode': 'require'},
+    'connect_args': {'ssl_context': __import__('ssl').create_default_context()},
     **({'poolclass': NullPool} if os.getenv('VERCEL') == '1' else {}),
 }
 app.config['SESSION_COOKIE_HTTPONLY'] = True
@@ -81,7 +85,7 @@ def init_extensions(application):
         application.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
             'pool_pre_ping': True,
             'pool_recycle': 300,
-            'connect_args': {'sslmode': 'require'},
+            'connect_args': {'ssl_context': __import__('ssl').create_default_context()},
             **({'poolclass': NullPool} if os.getenv('VERCEL') == '1' else {}),
         }
 
