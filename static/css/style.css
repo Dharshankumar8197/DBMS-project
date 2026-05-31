@@ -337,7 +337,7 @@ header {
 
 /* Hero Section */
 .hero {
-    background-image: linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), url('/static/images/hero-bg.jpg');
+    background-image: linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), url('https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTsDTAt9PfW1yIpvopoUc1K9PXz7fLuTwYqint3XNISLA&s');
     background-size: cover;
     background-position: center;
     color: white;
